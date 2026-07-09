@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Futbol Total — Arma tu equipo de leyendas</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">Futbol <span class="dash">Total</span></div>
+  <p class="tagline">Arma tu equipo, gira la ruleta y buscá el <strong>7 a 0</strong></p>
+  <nav class="mode-switch">
+    <button id="mode-draft" class="mode-btn active" type="button">Modo 7 a 0</button>
+    <button id="mode-guess" class="mode-btn" type="button">Adivina el Jugador</button>
+  </nav>
+</header>
+
+<main id="app-draft">
+
+  <!-- Paso 1: elegir mundial -->
+  <section id="screen-edition" class="screen active">
+    <h2>Elegí un Mundial</h2>
+    <div id="edition-list" class="edition-grid"></div>
+  </section>
+
+  <!-- Paso 2: elegir formación -->
+  <section id="screen-formation" class="screen">
+    <h2>Elegí una formación</h2>
+    <p class="subtitle">Define qué posiciones vas a necesitar completar</p>
+    <div id="formation-list" class="edition-grid"></div>
+  </section>
+
+  <!-- Paso 3: draft de jugadores -->
+  <section id="screen-draft" class="screen">
+    <h2>Armá tu equipo</h2>
+    <p class="subtitle">Necesitás <strong>11 jugadores</strong> para completar tu plantel</p>
+
+    <div id="position-needs" class="position-needs"></div>
+
+    <div class="draft-mode-switch">
+      <button id="draft-mode-wheel" class="mode-btn active" type="button">Girar la ruleta</button>
+      <button id="draft-mode-manual" class="mode-btn" type="button">Elegir manualmente</button>
+    </div>
+
+    <div id="draft-wheel-panel">
+      <div class="wheel-wrap">
+        <div id="wheel" class="wheel"></div>
+        <div class="wheel-pointer"></div>
+      </div>
+      <button id="btn-spin" class="btn btn-primary">Girar la ruleta</button>
+
+      <div id="wheel-team-pick" class="wheel-team-pick" hidden>
+        <h4>Te tocó <span id="wheel-team-name"></span> — elegí un jugador</h4>
+        <input id="wheel-team-filter" class="manual-filter" type="text" placeholder="Buscar jugador...">
+        <div id="wheel-team-players" class="manual-player-list"></div>
+      </div>
+    </div>
+
+    <div id="draft-manual-panel" hidden>
+      <input id="manual-filter" class="manual-filter" type="text" placeholder="Buscar jugador o selección...">
+      <div id="manual-player-list" class="manual-player-list"></div>
+    </div>
+
+    <div class="squad">
+      <h3>Tu equipo <span id="squad-count">(0/5)</span></h3>
+      <ul id="squad-list" class="squad-list"></ul>
+    </div>
+
+    <button id="btn-play" class="btn btn-accent" disabled>Jugar el torneo</button>
+  </section>
+
+  <!-- Paso 3: torneo / partidos -->
+  <section id="screen-match" class="screen">
+    <h2 id="match-phase-title">Fase de Grupos</h2>
+    <p class="subtitle" id="match-phase-subtitle">Jugá tus partidos de grupo</p>
+
+    <div id="group-table-wrap" class="group-table-wrap">
+      <table class="group-table">
+        <thead>
+          <tr>
+            <th>Equipo</th><th>Pts</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>DG</th>
+          </tr>
+        </thead>
+        <tbody id="group-table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="scoreboard">
+      <div class="side">
+        <span class="side-label">Tu equipo</span>
+        <span id="score-you" class="score">0</span>
+      </div>
+      <span class="vs">VS</span>
+      <div class="side">
+        <span id="opponent-name" class="side-label">Rival</span>
+        <span id="score-opp" class="score">0</span>
+      </div>
+    </div>
+
+    <div class="round-tracker" id="round-tracker"></div>
+
+    <button id="btn-next-match" class="btn btn-primary">Jugar siguiente partido</button>
+
+    <div id="match-log" class="match-log"></div>
+  </section>
+
+  <!-- Paso 4: resultado final -->
+  <section id="screen-result" class="screen">
+    <h2 id="result-title">Resultado</h2>
+    <p id="result-text" class="subtitle"></p>
+    <button id="btn-restart" class="btn btn-primary">Jugar de nuevo</button>
+  </section>
+
+</main>
+
+<main id="app-guess" hidden>
+
+  <section id="guess-screen" class="screen active">
+    <h2>Adivina el Jugador</h2>
+    <p class="subtitle" id="guess-subtitle">Tenés <strong id="guess-remaining">8</strong> intentos</p>
+
+    <div id="guess-edition-picker" class="edition-pill-group"></div>
+
+    <form id="guess-form" class="guess-form" autocomplete="off">
+      <div class="guess-input-wrap">
+        <input
+          id="guess-input"
+          type="text"
+          placeholder="Escribí el nombre de un jugador..."
+          autocomplete="off"
+          required
+        >
+        <ul id="guess-suggestions" class="guess-suggestions" hidden></ul>
+      </div>
+      <button type="submit" class="btn btn-primary">Adivinar</button>
+    </form>
+
+    <div class="hint-box">
+      <button id="btn-hint" type="button" class="btn btn-hint">💡 Pedir pista (0/4)</button>
+      <ul id="hints-list" class="hints-list"></ul>
+    </div>
+
+    <div class="guess-table-wrap">
+      <table class="guess-table">
+        <thead>
+          <tr>
+            <th>Jugador</th>
+            <th>Selección</th>
+            <th>Confederación</th>
+            <th>Grupo</th>
+            <th>Inicial</th>
+            <th>Letras</th>
+            <th>Coincidencia</th>
+          </tr>
+        </thead>
+        <tbody id="guess-tbody"></tbody>
+      </table>
+    </div>
+
+    <div id="guess-result" class="guess-result"></div>
+    <button id="btn-guess-restart" class="btn btn-accent" hidden>Jugar de nuevo</button>
+  </section>
+
+</main>
+
+<footer>
+  <p>Proyecto inspirado en <a href="https://7a0.com.br/es" target="_blank" rel="noopener">7a0.com.br</a> — hecho con HTML/CSS/JS.</p>
+</footer>
+
+<script src="data/mundiales.js?v=13"></script>
+<script src="data/confederaciones.js?v=13"></script>
+<script src="data/banderas.js?v=13"></script>
+<script src="game.js?v=13"></script>
+<script src="guess.js?v=13"></script>
+<script src="mode-switch.js?v=13"></script>
+</body>
+</html>
