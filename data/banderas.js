@@ -16,6 +16,10 @@ const TEAM_FLAG = {
   "Paraguay": "🇵🇾", "Turquía": "🇹🇷", "Curazao": "🇨🇼", "Nueva Zelanda": "🇳🇿",
   "Noruega": "🇳🇴", "Irak": "🇮🇶", "Cabo Verde": "🇨🇻", "Austria": "🇦🇹",
   "Jordania": "🇯🇴", "Uzbekistán": "🇺🇿", "R.D. Congo": "🇨🇩",
+  "Eslovenia": "🇸🇮", "Eslovaquia": "🇸🇰", "Corea del Norte": "🇰🇵",
+  "Ucrania": "🇺🇦", "Togo": "🇹🇬", "Serbia y Montenegro": "🇷🇸", "Trinidad y Tobago": "🇹🇹", "Angola": "🇦🇴",
+  "China": "🇨🇳", "Irlanda": "🇮🇪",
+  "Yugoslavia": "🇷🇸", "Rumania": "🇷🇴", "Jamaica": "🇯🇲", "Bulgaria": "🇧🇬",
 };
 
 if (typeof window !== "undefined") window.TEAM_FLAG = TEAM_FLAG;

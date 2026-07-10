@@ -16,6 +16,10 @@ const TEAM_CONFEDERATION = {
   "Paraguay": "CONMEBOL", "Turquía": "UEFA", "Curazao": "CONCACAF", "Nueva Zelanda": "OFC",
   "Noruega": "UEFA", "Irak": "AFC", "Cabo Verde": "CAF", "Austria": "UEFA",
   "Jordania": "AFC", "Uzbekistán": "AFC", "R.D. Congo": "CAF",
+  "Eslovenia": "UEFA", "Eslovaquia": "UEFA", "Corea del Norte": "AFC",
+  "Ucrania": "UEFA", "Togo": "CAF", "Serbia y Montenegro": "UEFA", "Trinidad y Tobago": "CONCACAF", "Angola": "CAF",
+  "China": "AFC", "Irlanda": "UEFA",
+  "Yugoslavia": "UEFA", "Rumania": "UEFA", "Jamaica": "CONCACAF", "Bulgaria": "UEFA",
 };
 
 if (typeof window !== "undefined") window.TEAM_CONFEDERATION = TEAM_CONFEDERATION;
