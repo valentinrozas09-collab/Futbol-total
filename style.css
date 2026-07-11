@@ -249,6 +249,11 @@ h2 {
   padding: 8px 12px;
   font-size: .9rem;
 }
+.match-log .entry-sub {
+  color: var(--text-dim);
+  font-size: .8rem;
+  margin-top: 3px;
+}
 
 footer {
   color: var(--text-dim);

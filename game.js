@@ -65,7 +65,8 @@
   // Estado del torneo
   let phase = null; // "group" | "knockout"
   let groupTeams = []; // [{name, isYou, pts, pj, g, e, p, gf, gc}]
-  let groupMatchIndex = 0; // próximo partido tuyo a jugar (0..2)
+  let groupSchedule = []; // [{you: oppName, otherA, otherB}] una entrada por jornada
+  let groupMatchIndex = 0; // próxima jornada a jugar (0..2)
   let knockoutIndex = 0; // índice en KNOCKOUT_STAGES
   let facedTeams = new Set();
   let record = { wins: 0, draws: 0, losses: 0 };
@@ -435,6 +436,16 @@
     else { stat.p++; }
   }
 
+  // Calendario de 3 jornadas para un grupo de 4 (round-robin con "Tu equipo" fijo):
+  // en cada jornada vos jugás un partido y, a la par, los otros dos equipos juegan el suyo.
+  function buildGroupSchedule(opponents) {
+    return [
+      { you: opponents[0], otherA: opponents[1], otherB: opponents[2] },
+      { you: opponents[1], otherA: opponents[2], otherB: opponents[0] },
+      { you: opponents[2], otherA: opponents[0], otherB: opponents[1] },
+    ];
+  }
+
   function startGroupStage() {
     phase = "group";
     facedTeams = new Set();
@@ -443,35 +454,21 @@
     opponents.forEach((t) => facedTeams.add(t));
 
     groupTeams = [newTeamStat(YOUR_TEAM_LABEL, true), ...opponents.map((t) => newTeamStat(t, false))];
-
-    // simulamos ya los 3 partidos entre los 3 oponentes (no involucran a "Tu Equipo")
-    for (let i = 0; i < opponents.length; i++) {
-      for (let j = i + 1; j < opponents.length; j++) {
-        const statA = groupTeams.find((t) => t.name === opponents[i]);
-        const statB = groupTeams.find((t) => t.name === opponents[j]);
-        const [gA, gB] = simulateScore(teamPower(opponents[i]), teamPower(opponents[j]));
-        applyResult(statA, gA, gB);
-        applyResult(statB, gB, gA);
-      }
-    }
+    groupSchedule = buildGroupSchedule(opponents);
 
     groupMatchIndex = 0;
     matchPhaseTitle.textContent = "Fase de Grupos";
-    matchPhaseSubtitle.textContent = "Jugá tus 3 partidos de grupo";
+    matchPhaseSubtitle.textContent = "Jugá tus 3 partidos de grupo — el resto del grupo juega a la par";
     groupTableWrap.hidden = false;
     matchLog.innerHTML = "";
     scoreYou.textContent = "0";
     scoreOpp.textContent = "0";
-    opponentName.textContent = opponents[0];
+    opponentName.textContent = groupSchedule[0].you;
     renderGroupTable();
     renderRoundTracker();
     btnNextMatch.disabled = false;
     btnNextMatch.textContent = "Jugar siguiente partido";
     showScreen("screen-match");
-  }
-
-  function currentGroupOpponents() {
-    return groupTeams.filter((t) => !t.isYou).map((t) => t.name);
   }
 
   function renderGroupTable() {
@@ -511,8 +508,8 @@
   }
 
   function playGroupMatch() {
-    const opponents = currentGroupOpponents();
-    const oppTeamName = opponents[groupMatchIndex];
+    const round = groupSchedule[groupMatchIndex];
+    const oppTeamName = round.you;
     const oppStat = groupTeams.find((t) => t.name === oppTeamName);
     const youStat = groupTeams.find((t) => t.isYou);
 
@@ -527,10 +524,20 @@
     scoreYou.textContent = myGoals;
     scoreOpp.textContent = oppGoals;
 
+    // el resto del grupo juega su partido en la misma jornada, a la par del tuyo
+    const otherAStat = groupTeams.find((t) => t.name === round.otherA);
+    const otherBStat = groupTeams.find((t) => t.name === round.otherB);
+    const [gA, gB] = simulateScore(teamPower(round.otherA), teamPower(round.otherB));
+    applyResult(otherAStat, gA, gB);
+    applyResult(otherBStat, gB, gA);
+
+    const res = myGoals > oppGoals ? "Ganaste" : myGoals === oppGoals ? "Empataste" : "Perdiste";
     const entry = document.createElement("div");
     entry.className = "entry";
-    const res = myGoals > oppGoals ? "Ganaste" : myGoals === oppGoals ? "Empataste" : "Perdiste";
-    entry.textContent = `Fase de grupos: vs ${oppTeamName} — ${myGoals} a ${oppGoals} (${res})`;
+    entry.innerHTML = `
+      <div>Jornada ${groupMatchIndex + 1}: vs ${oppTeamName} — ${myGoals} a ${oppGoals} (${res})</div>
+      <div class="entry-sub">A la par: ${round.otherA} ${gA} - ${gB} ${round.otherB}</div>
+    `;
     matchLog.prepend(entry);
 
     groupMatchIndex++;
@@ -549,7 +556,7 @@
       }
       return;
     }
-    opponentName.textContent = opponents[groupMatchIndex];
+    opponentName.textContent = groupSchedule[groupMatchIndex].you;
   }
 
   // ---------- Fase eliminatoria ----------

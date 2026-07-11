@@ -905,10 +905,22 @@ const WORLD_CUPS = {
 
   2026: {
     host: "Canadá / México / Estados Unidos",
-    winner: null, // torneo en curso al 2026-07-06 (fase de eliminación, final el 19/07/2026)
+    winner: null, // torneo en curso al 2026-07-11: semifinales el 14/07 (Francia-España y el otro cruce), final el 19/07/2026
     runnerUp: null,
     goldenBall: null,
     goldenBoot: null,
+    // Tabla de goleadores real, actualizada al 11/07/2026 (previo a semifinales) — se usa para
+    // que el rating del modo Draft refleje el rendimiento real del torneo en curso.
+    topScorers: [
+      { name: "Kylian Mbappé", team: "Francia", goals: 8 },
+      { name: "Lionel Messi", team: "Argentina", goals: 8 },
+      { name: "Erling Haaland", team: "Noruega", goals: 7 },
+      { name: "Harry Kane", team: "Inglaterra", goals: 6 },
+      { name: "Ousmane Dembélé", team: "Francia", goals: 4 },
+      { name: "Mikel Oyarzabal", team: "España", goals: 4 },
+      { name: "Vinícius Júnior", team: "Brasil", goals: 4 },
+      { name: "Ismaïla Sarr", team: "Senegal", goals: 4 },
+    ],
     teamCount: 48,
     groups: {
       A: ["México", "Sudáfrica", "Corea del Sur", "Chequia"],
