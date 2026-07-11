@@ -20,6 +20,8 @@ const TEAM_FLAG = {
   "Ucrania": "🇺🇦", "Togo": "🇹🇬", "Serbia y Montenegro": "🇷🇸", "Trinidad y Tobago": "🇹🇹", "Angola": "🇦🇴",
   "China": "🇨🇳", "Irlanda": "🇮🇪",
   "Yugoslavia": "🇷🇸", "Rumania": "🇷🇴", "Jamaica": "🇯🇲", "Bulgaria": "🇧🇬",
+  "Bolivia": "🇧🇴",
+  "Checoslovaquia": "🇨🇿", "Unión Soviética": "🇷🇺", "Alemania Occidental": "🇩🇪", "Emiratos Árabes Unidos": "🇦🇪",
 };
 
 if (typeof window !== "undefined") window.TEAM_FLAG = TEAM_FLAG;

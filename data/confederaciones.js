@@ -20,6 +20,8 @@ const TEAM_CONFEDERATION = {
   "Ucrania": "UEFA", "Togo": "CAF", "Serbia y Montenegro": "UEFA", "Trinidad y Tobago": "CONCACAF", "Angola": "CAF",
   "China": "AFC", "Irlanda": "UEFA",
   "Yugoslavia": "UEFA", "Rumania": "UEFA", "Jamaica": "CONCACAF", "Bulgaria": "UEFA",
+  "Bolivia": "CONMEBOL",
+  "Checoslovaquia": "UEFA", "Unión Soviética": "UEFA", "Alemania Occidental": "UEFA", "Emiratos Árabes Unidos": "AFC",
 };
 
 if (typeof window !== "undefined") window.TEAM_CONFEDERATION = TEAM_CONFEDERATION;
