@@ -53,6 +53,13 @@ function hashInt(str) {
   return h;
 }
 
+function goalsScoredBonus(edition, name) {
+  if (!edition.topScorers) return 0;
+  const entry = edition.topScorers.find((s) => s.name === name);
+  if (!entry) return 0;
+  return Math.min(16, entry.goals * 2); // rendimiento real del torneo en curso, tope +16
+}
+
 function playerRating(year, team, name) {
   const edition = window.WORLD_CUPS && window.WORLD_CUPS[year];
   if (!edition) return 75;
@@ -65,7 +72,9 @@ function playerRating(year, team, name) {
   if (edition.winner && team === edition.winner) base += 14;
   else if (edition.runnerUp && team === edition.runnerUp) base += 8;
 
-  if (STAR_PLAYERS.has(name)) base += 11;
+  // Si el jugador es goleador destacado del torneo EN CURSO, ese rendimiento real pesa más
+  // que el reconocimiento genérico de "figura histórica"; si no, usamos el bonus de estrella.
+  base += Math.max(STAR_PLAYERS.has(name) ? 11 : 0, goalsScoredBonus(edition, name));
 
   const isGoldenBoot = edition.goldenBoot && edition.goldenBoot === name;
   if (isGoldenBoot) base = Math.max(base, 90);
