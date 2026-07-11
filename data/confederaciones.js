@@ -22,6 +22,7 @@ const TEAM_CONFEDERATION = {
   "Yugoslavia": "UEFA", "Rumania": "UEFA", "Jamaica": "CONCACAF", "Bulgaria": "UEFA",
   "Bolivia": "CONMEBOL",
   "Checoslovaquia": "UEFA", "Unión Soviética": "UEFA", "Alemania Occidental": "UEFA", "Emiratos Árabes Unidos": "AFC",
+  "Hungría": "UEFA", "Irlanda del Norte": "UEFA",
 };
 
 if (typeof window !== "undefined") window.TEAM_CONFEDERATION = TEAM_CONFEDERATION;

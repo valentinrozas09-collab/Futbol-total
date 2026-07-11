@@ -121,6 +121,22 @@
     return (teamMap && teamMap[player.name]) || null;
   }
 
+  function ratingOf(player) {
+    if (window.playerRating) return window.playerRating(editionYear, player.team, player.name);
+    return hashPower(player.name);
+  }
+
+  function ratingTier(rating) {
+    if (rating >= 90) return "tier-elite";
+    if (rating >= 80) return "tier-great";
+    return "";
+  }
+
+  function ratingBadge(player) {
+    const rating = ratingOf(player);
+    return `<span class="rating-badge ${ratingTier(rating)}">${rating}</span>`;
+  }
+
   function selectEdition(year) {
     editionYear = year;
     edition = window.WORLD_CUPS[year];
@@ -236,7 +252,7 @@
       const pos = positionOf(p);
       const disabled = !added && !canAddPlayer(p);
       row.innerHTML = `
-        <span class="manual-name">${p.name}${pos ? ` <span class="pos-badge">${pos}</span>` : ""}</span>
+        <span class="manual-name">${ratingBadge(p)}${pos ? `<span class="pos-badge">${pos}</span>` : ""}${p.name}</span>
         <span class="manual-team">${p.team}</span>
         <button type="button" class="btn-mini ${added ? "added" : ""}" ${disabled ? "disabled" : ""}>${added ? "Quitar" : "Agregar"}</button>
       `;
@@ -265,7 +281,7 @@
     for (const p of squad) {
       const pos = positionOf(p);
       const li = document.createElement("li");
-      li.innerHTML = `<span>${pos ? `<span class="pos-badge">${pos}</span> ` : ""}${p.name} <span class="player-team">(${p.team})</span></span>`;
+      li.innerHTML = `<span>${ratingBadge(p)}${pos ? `<span class="pos-badge">${pos}</span> ` : ""}${p.name} <span class="player-team">(${p.team})</span></span>`;
       const removeBtn = document.createElement("button");
       removeBtn.type = "button";
       removeBtn.className = "btn-mini";
@@ -336,7 +352,7 @@
       const row = document.createElement("div");
       row.className = "manual-row";
       row.innerHTML = `
-        <span class="manual-name">${p.name}${pos ? ` <span class="pos-badge">${pos}</span>` : ""}</span>
+        <span class="manual-name">${ratingBadge(p)}${pos ? `<span class="pos-badge">${pos}</span>` : ""}${p.name}</span>
         <button type="button" class="btn-mini">Elegir</button>
       `;
       row.querySelector("button").addEventListener("click", () => {
@@ -365,7 +381,16 @@
   }
 
   function squadPower() {
-    return squad.reduce((sum, p) => sum + hashPower(p.name), 0) / squad.length;
+    return squad.reduce((sum, p) => sum + ratingOf(p), 0) / squad.length;
+  }
+
+  function teamPower(teamName) {
+    const players = (edition.players && edition.players[teamName]) || [];
+    if (players.length && window.playerRating) {
+      const sum = players.reduce((s, name) => s + window.playerRating(editionYear, teamName, name), 0);
+      return sum / players.length;
+    }
+    return hashPower(teamName);
   }
 
   function simulateScore(powerA, powerB) {
@@ -409,7 +434,7 @@
       for (let j = i + 1; j < opponents.length; j++) {
         const statA = groupTeams.find((t) => t.name === opponents[i]);
         const statB = groupTeams.find((t) => t.name === opponents[j]);
-        const [gA, gB] = simulateScore(hashPower(opponents[i]), hashPower(opponents[j]));
+        const [gA, gB] = simulateScore(teamPower(opponents[i]), teamPower(opponents[j]));
         applyResult(statA, gA, gB);
         applyResult(statB, gB, gA);
       }
@@ -476,7 +501,7 @@
     const oppStat = groupTeams.find((t) => t.name === oppTeamName);
     const youStat = groupTeams.find((t) => t.isYou);
 
-    const [myGoals, oppGoals] = simulateScore(squadPower(), hashPower(oppTeamName));
+    const [myGoals, oppGoals] = simulateScore(squadPower(), teamPower(oppTeamName));
     applyResult(youStat, myGoals, oppGoals);
     applyResult(oppStat, oppGoals, myGoals);
 
@@ -536,7 +561,7 @@
 
   function playKnockoutMatch() {
     const oppTeamName = opponentName.textContent;
-    let [myGoals, oppGoals] = simulateScore(squadPower(), hashPower(oppTeamName));
+    let [myGoals, oppGoals] = simulateScore(squadPower(), teamPower(oppTeamName));
 
     let penalties = "";
     if (myGoals === oppGoals) {

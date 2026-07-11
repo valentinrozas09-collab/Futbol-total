@@ -22,6 +22,7 @@ const TEAM_FLAG = {
   "Yugoslavia": "🇷🇸", "Rumania": "🇷🇴", "Jamaica": "🇯🇲", "Bulgaria": "🇧🇬",
   "Bolivia": "🇧🇴",
   "Checoslovaquia": "🇨🇿", "Unión Soviética": "🇷🇺", "Alemania Occidental": "🇩🇪", "Emiratos Árabes Unidos": "🇦🇪",
+  "Hungría": "🇭🇺", "Irlanda del Norte": "🏴󠁧󠁢󠁮󠁩󠁲󠁿",
 };
 
 if (typeof window !== "undefined") window.TEAM_FLAG = TEAM_FLAG;
