@@ -393,10 +393,25 @@
     return hashPower(teamName);
   }
 
+  // Muestreo Poisson (algoritmo de Knuth): da la distribución de goles típica del fútbol real
+  // (mayoría de partidos entre 0 y 3 goles por equipo, resultados de 5+ son raros).
+  function poissonSample(lambda) {
+    const L = Math.exp(-lambda);
+    let k = 0;
+    let p = 1;
+    do {
+      k++;
+      p *= Math.random();
+    } while (p > L);
+    return k - 1;
+  }
+
   function simulateScore(powerA, powerB) {
-    let a = Math.max(0, Math.round((powerA - 50) / 12 + Math.random() * 3));
-    let b = Math.max(0, Math.round((powerB - 50) / 12 + Math.random() * 3));
-    return [a, b];
+    const diff = powerA - powerB; // rating va de 60 a 99, así que diff típico es -35..35
+    const AVG_GOALS = 1.3; // promedio real de goles por equipo en un Mundial
+    const lambdaA = Math.max(0.25, AVG_GOALS + diff / 40);
+    const lambdaB = Math.max(0.25, AVG_GOALS - diff / 40);
+    return [poissonSample(lambdaA), poissonSample(lambdaB)];
   }
 
   function pickRandomTeams(n, exclude) {
