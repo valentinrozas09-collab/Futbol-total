@@ -276,6 +276,7 @@ footer a {
   margin-top: 16px;
 }
 .mode-btn {
+  display: inline-block;
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-dim);
@@ -283,6 +284,7 @@ footer a {
   border-radius: 999px;
   font-weight: 700;
   cursor: pointer;
+  text-decoration: none;
 }
 .mode-btn.active {
   background: var(--green);
