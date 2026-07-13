@@ -1,24 +1,28 @@
 (function () {
-  const btnDraft = document.getElementById("mode-draft");
-  const btnGuess = document.getElementById("mode-guess");
-  const appDraft = document.getElementById("app-draft");
-  const appGuess = document.getElementById("app-guess");
+  const MODES = [
+    { btn: "mode-draft", app: "app-draft" },
+    { btn: "mode-guess", app: "app-guess", event: "guessmode:shown" },
+    { btn: "mode-flags", app: "app-flags", event: "flagsmode:shown" },
+    { btn: "mode-memory", app: "app-memory", event: "memorymode:shown" },
+    { btn: "mode-grid", app: "app-grid", event: "gridmode:shown" },
+    { btn: "mode-connections", app: "app-connections", event: "connectionsmode:shown" },
+    { btn: "mode-link", app: "app-link", event: "linkmode:shown" },
+  ].map((m) => ({
+    ...m,
+    btnEl: document.getElementById(m.btn),
+    appEl: document.getElementById(m.app),
+  }));
 
-  function showDraft() {
-    appDraft.hidden = false;
-    appGuess.hidden = true;
-    btnDraft.classList.add("active");
-    btnGuess.classList.remove("active");
+  function show(target) {
+    for (const m of MODES) {
+      const active = m === target;
+      m.appEl.hidden = !active;
+      m.btnEl.classList.toggle("active", active);
+    }
+    if (target.event) document.dispatchEvent(new CustomEvent(target.event));
   }
 
-  function showGuess() {
-    appDraft.hidden = true;
-    appGuess.hidden = false;
-    btnGuess.classList.add("active");
-    btnDraft.classList.remove("active");
-    document.dispatchEvent(new CustomEvent("guessmode:shown"));
+  for (const m of MODES) {
+    m.btnEl.addEventListener("click", () => show(m));
   }
-
-  btnDraft.addEventListener("click", showDraft);
-  btnGuess.addEventListener("click", showGuess);
 })();

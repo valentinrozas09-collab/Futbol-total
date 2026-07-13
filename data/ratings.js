@@ -85,5 +85,8 @@ function playerRating(year, team, name) {
   return Math.max(60, Math.min(98, base));
 }
 
-if (typeof window !== "undefined") window.playerRating = playerRating;
+if (typeof window !== "undefined") {
+  window.playerRating = playerRating;
+  window.STAR_PLAYERS = STAR_PLAYERS;
+}
 if (typeof module !== "undefined" && module.exports) module.exports = playerRating;

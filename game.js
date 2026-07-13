@@ -37,6 +37,8 @@
   const btnPlay = document.getElementById("btn-play");
   const squadCount = document.getElementById("squad-count");
   const squadList = document.getElementById("squad-list");
+  const btnAiComplete = document.getElementById("btn-ai-complete");
+  const btnIdealSquad = document.getElementById("btn-ideal-squad");
 
   const matchPhaseTitle = document.getElementById("match-phase-title");
   const matchPhaseSubtitle = document.getElementById("match-phase-subtitle");
@@ -45,6 +47,7 @@
   const scoreYou = document.getElementById("score-you");
   const scoreOpp = document.getElementById("score-opp");
   const opponentName = document.getElementById("opponent-name");
+  const matchPreview = document.getElementById("match-preview");
   const roundTracker = document.getElementById("round-tracker");
   const btnNextMatch = document.getElementById("btn-next-match");
   const matchLog = document.getElementById("match-log");
@@ -120,6 +123,12 @@
     if (!edition.positions) return null;
     const teamMap = edition.positions[player.team];
     return (teamMap && teamMap[player.name]) || null;
+  }
+
+  function hashPower(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return 55 + (h % 40); // 55-94
   }
 
   function ratingOf(player) {
@@ -297,8 +306,71 @@
     }
     btnPlay.disabled = squad.length < SQUAD_SIZE;
     btnSpin.disabled = squad.length >= SQUAD_SIZE;
+    btnAiComplete.disabled = squad.length >= SQUAD_SIZE;
     renderPositionNeeds();
   }
+
+  // ---------- Asistente de armado con IA ----------
+
+  function bestAvailableByPosition(pos) {
+    return pool
+      .filter((p) => !isInSquad(p) && positionOf(p) === pos)
+      .sort((a, b) => ratingOf(b) - ratingOf(a));
+  }
+
+  function aiCompleteSquad() {
+    if (squad.length >= SQUAD_SIZE) return;
+
+    if (!requiredCounts) {
+      const candidates = pool.filter((p) => !isInSquad(p)).sort((a, b) => ratingOf(b) - ratingOf(a));
+      squad.push(...candidates.slice(0, SQUAD_SIZE - squad.length));
+    } else {
+      for (const pos of POSITION_ORDER) {
+        while (needsPosition(pos) && squad.length < SQUAD_SIZE) {
+          const candidates = bestAvailableByPosition(pos);
+          if (!candidates.length) break;
+          squad.push(candidates[0]);
+        }
+      }
+      // por si algún puesto se quedó sin jugadores disponibles, completa con los mejores restantes
+      while (squad.length < SQUAD_SIZE) {
+        const candidates = pool.filter((p) => !isInSquad(p) && canAddPlayer(p)).sort((a, b) => ratingOf(b) - ratingOf(a));
+        if (!candidates.length) break;
+        squad.push(candidates[0]);
+      }
+    }
+
+    wheelTeamPick.hidden = true;
+    spinTeam = null;
+    renderSquad();
+    renderManualList();
+  }
+
+  function buildIdealSquad() {
+    if (squad.length && !confirm("Esto reemplaza tu plantel actual por el equipo ideal de la edición. ¿Continuar?")) {
+      return;
+    }
+
+    if (!requiredCounts) {
+      squad = [...pool].sort((a, b) => ratingOf(b) - ratingOf(a)).slice(0, SQUAD_SIZE);
+    } else {
+      const chosen = [];
+      for (const pos of POSITION_ORDER) {
+        const need = requiredCounts[pos] || 0;
+        const candidates = pool.filter((p) => positionOf(p) === pos).sort((a, b) => ratingOf(b) - ratingOf(a));
+        chosen.push(...candidates.slice(0, need));
+      }
+      squad = chosen;
+    }
+
+    wheelTeamPick.hidden = true;
+    spinTeam = null;
+    renderSquad();
+    renderManualList();
+  }
+
+  btnAiComplete.addEventListener("click", aiCompleteSquad);
+  btnIdealSquad.addEventListener("click", buildIdealSquad);
 
   function teamHasPickablePlayers(team) {
     return pool.some((p) => p.team === team && !isInSquad(p) && canAddPlayer(p));
@@ -373,26 +445,69 @@
 
   btnSpin.addEventListener("click", spinWheel);
 
-  // ---------- Simulación de partidos ----------
+  // ---------- Rival con IA: arma su propio plantel y juega con ataque/defensa reales ----------
 
-  function hashPower(str) {
-    let h = 0;
-    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
-    return 55 + (h % 40); // 55-94
+  const AI_DEFAULT_FORMATION = { GK: 1, DF: 4, MF: 3, FW: 3 };
+  const AI_EXPLOIT_FORMATION = { GK: 1, DF: 3, MF: 3, FW: 4 }; // carga de delanteros para explotar defensas débiles
+
+  function avgRating(players) {
+    if (!players || !players.length) return 70;
+    return players.reduce((sum, p) => sum + ratingOf(p), 0) / players.length;
   }
 
-  function squadPower() {
-    return squad.reduce((sum, p) => sum + ratingOf(p), 0) / squad.length;
+  function lineAvg(players, cats) {
+    const rel = players.filter((p) => cats.includes(positionOf(p)));
+    if (!rel.length) return null;
+    return rel.reduce((sum, p) => sum + ratingOf(p), 0) / rel.length;
   }
 
-  function teamPower(teamName) {
-    const players = (edition.players && edition.players[teamName]) || [];
-    if (players.length && window.playerRating) {
-      const sum = players.reduce((s, name) => s + window.playerRating(editionYear, teamName, name), 0);
-      return sum / players.length;
+  function attackRating(players) {
+    const specific = lineAvg(players, ["FW", "MF"]);
+    return specific != null ? specific : avgRating(players);
+  }
+
+  function defenseRating(players) {
+    const specific = lineAvg(players, ["GK", "DF"]);
+    return specific != null ? specific : avgRating(players);
+  }
+
+  // Detecta si tu plantel tiene la defensa notablemente más floja que el ataque,
+  // para que el rival "lea" esa debilidad y arme su equipo para explotarla.
+  function userDefenseWeak() {
+    if (!hasPositionData() || !squad.length) return false;
+    const def = lineAvg(squad, ["GK", "DF"]);
+    const att = lineAvg(squad, ["MF", "FW"]);
+    if (def == null || att == null) return false;
+    return att - def >= 4;
+  }
+
+  // Arma el mejor 11 real de un seleccionado: toma los jugadores de mayor rating
+  // por posición (más delanteros si `exploit` está activo).
+  function aiSquadFor(teamName, exploit) {
+    const teamPlayers = (edition.players && edition.players[teamName]) || [];
+    if (!teamPlayers.length) return [{ name: teamName, team: teamName }];
+
+    const withRatings = teamPlayers.map((name) => ({ name, team: teamName }));
+    if (!hasPositionData()) {
+      return withRatings.sort((a, b) => ratingOf(b) - ratingOf(a)).slice(0, 11);
     }
-    return hashPower(teamName);
+
+    const counts = exploit ? AI_EXPLOIT_FORMATION : AI_DEFAULT_FORMATION;
+    const chosen = [];
+    for (const pos of POSITION_ORDER) {
+      const need = counts[pos] || 0;
+      const candidates = withRatings.filter((p) => positionOf(p) === pos).sort((a, b) => ratingOf(b) - ratingOf(a));
+      chosen.push(...candidates.slice(0, need));
+    }
+    if (chosen.length < 11) {
+      const chosenNames = new Set(chosen.map((p) => p.name));
+      const rest = withRatings.filter((p) => !chosenNames.has(p.name)).sort((a, b) => ratingOf(b) - ratingOf(a));
+      chosen.push(...rest.slice(0, 11 - chosen.length));
+    }
+    return chosen;
   }
+
+  // ---------- Simulación de partidos ----------
 
   // Muestreo Poisson (algoritmo de Knuth): da la distribución de goles típica del fútbol real
   // (mayoría de partidos entre 0 y 3 goles por equipo, resultados de 5+ son raros).
@@ -407,12 +522,76 @@
     return k - 1;
   }
 
-  function simulateScore(powerA, powerB) {
-    const diff = powerA - powerB; // rating va de 60 a 99, así que diff típico es -35..35
-    const AVG_GOALS = 1.3; // promedio real de goles por equipo en un Mundial
-    const lambdaA = Math.max(0.25, AVG_GOALS + diff / 40);
-    const lambdaB = Math.max(0.25, AVG_GOALS - diff / 40);
+  const AVG_GOALS = 1.3; // promedio real de goles por equipo en un Mundial
+
+  // El ataque de un equipo se enfrenta a la defensa del otro (y viceversa), en vez de
+  // comparar un único número de "poder": así un rival con delanteros fuertes castiga
+  // de verdad a un plantel con defensa floja.
+  function computeLambdas(squadA, squadB) {
+    const attackA = attackRating(squadA);
+    const defenseA = defenseRating(squadA);
+    const attackB = attackRating(squadB);
+    const defenseB = defenseRating(squadB);
+    const lambdaA = Math.max(0.25, AVG_GOALS + (attackA - defenseB) / 40);
+    const lambdaB = Math.max(0.25, AVG_GOALS + (attackB - defenseA) / 40);
+    return [lambdaA, lambdaB];
+  }
+
+  function simulateMatch(squadA, squadB) {
+    const [lambdaA, lambdaB] = computeLambdas(squadA, squadB);
     return [poissonSample(lambdaA), poissonSample(lambdaB)];
+  }
+
+  // ---------- Predicción de partido (IA analizando el partido) ----------
+
+  const FACTORIALS = [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800];
+
+  function poissonPMF(k, lambda) {
+    return (Math.exp(-lambda) * Math.pow(lambda, k)) / FACTORIALS[k];
+  }
+
+  function matchProbabilities(lambdaMe, lambdaOpp) {
+    const MAXG = 10;
+    let winP = 0, drawP = 0, loseP = 0;
+    for (let i = 0; i <= MAXG; i++) {
+      const pi = poissonPMF(i, lambdaMe);
+      for (let j = 0; j <= MAXG; j++) {
+        const p = pi * poissonPMF(j, lambdaOpp);
+        if (i > j) winP += p;
+        else if (i === j) drawP += p;
+        else loseP += p;
+      }
+    }
+    const total = winP + drawP + loseP || 1;
+    return { winP: winP / total, drawP: drawP / total, loseP: loseP / total };
+  }
+
+  function renderMatchPreview(oppTeamName, oppSquad, exploit) {
+    if (!oppTeamName || !oppSquad) {
+      matchPreview.innerHTML = "";
+      return;
+    }
+    const [lambdaMe, lambdaOpp] = computeLambdas(squad, oppSquad);
+    const { winP, drawP, loseP } = matchProbabilities(lambdaMe, lambdaOpp);
+    const myAvg = Math.round(avgRating(squad));
+    const oppAvg = Math.round(avgRating(oppSquad));
+    const favorite = myAvg === oppAvg ? "Está parejo" : myAvg > oppAvg ? "Vos" : oppTeamName;
+
+    matchPreview.innerHTML = `
+      <div class="preview-label">🤖 IA analizando el partido…</div>
+      <div class="preview-line">Favorito: <strong>${favorite}</strong> (rating promedio ${myAvg} vs ${oppAvg})</div>
+      <div class="preview-line">${Math.round(winP * 100)}% victoria · ${Math.round(drawP * 100)}% empate · ${Math.round(loseP * 100)}% derrota</div>
+      ${exploit ? `<div class="preview-line warn">⚠️ ${oppTeamName} cargó de delanteros para aprovechar tu defensa.</div>` : ""}
+    `;
+  }
+
+  let currentOppSquad = null;
+
+  function setOpponent(oppTeamName) {
+    opponentName.textContent = oppTeamName;
+    const exploit = userDefenseWeak();
+    currentOppSquad = aiSquadFor(oppTeamName, exploit);
+    renderMatchPreview(oppTeamName, currentOppSquad, exploit);
   }
 
   function pickRandomTeams(n, exclude) {
@@ -463,7 +642,7 @@
     matchLog.innerHTML = "";
     scoreYou.textContent = "0";
     scoreOpp.textContent = "0";
-    opponentName.textContent = groupSchedule[0].you;
+    setOpponent(groupSchedule[0].you);
     renderGroupTable();
     renderRoundTracker();
     btnNextMatch.disabled = false;
@@ -513,7 +692,7 @@
     const oppStat = groupTeams.find((t) => t.name === oppTeamName);
     const youStat = groupTeams.find((t) => t.isYou);
 
-    const [myGoals, oppGoals] = simulateScore(squadPower(), teamPower(oppTeamName));
+    const [myGoals, oppGoals] = simulateMatch(squad, currentOppSquad);
     applyResult(youStat, myGoals, oppGoals);
     applyResult(oppStat, oppGoals, myGoals);
 
@@ -527,7 +706,7 @@
     // el resto del grupo juega su partido en la misma jornada, a la par del tuyo
     const otherAStat = groupTeams.find((t) => t.name === round.otherA);
     const otherBStat = groupTeams.find((t) => t.name === round.otherB);
-    const [gA, gB] = simulateScore(teamPower(round.otherA), teamPower(round.otherB));
+    const [gA, gB] = simulateMatch(aiSquadFor(round.otherA, false), aiSquadFor(round.otherB, false));
     applyResult(otherAStat, gA, gB);
     applyResult(otherBStat, gB, gA);
 
@@ -556,7 +735,7 @@
       }
       return;
     }
-    opponentName.textContent = groupSchedule[groupMatchIndex].you;
+    setOpponent(groupSchedule[groupMatchIndex].you);
   }
 
   // ---------- Fase eliminatoria ----------
@@ -578,12 +757,12 @@
   function nextKnockoutOpponent() {
     const [opp] = pickRandomTeams(1, facedTeams);
     facedTeams.add(opp);
-    opponentName.textContent = opp;
+    setOpponent(opp);
   }
 
   function playKnockoutMatch() {
     const oppTeamName = opponentName.textContent;
-    let [myGoals, oppGoals] = simulateScore(squadPower(), teamPower(oppTeamName));
+    let [myGoals, oppGoals] = simulateMatch(squad, currentOppSquad);
 
     let penalties = "";
     if (myGoals === oppGoals) {
@@ -639,6 +818,7 @@
 
   function endTournament(champion, where) {
     btnNextMatch.disabled = true;
+    matchPreview.innerHTML = "";
     resultTitle.className = champion ? "win" : "lose";
     if (champion) {
       const perfect = record.losses === 0 && record.draws === 0;
@@ -664,9 +844,11 @@
     spinTeam = null;
     formationKey = null;
     requiredCounts = null;
+    currentOppSquad = null;
     wheelTeamPick.hidden = true;
     wheel.style.transform = "rotate(0deg)";
     wheel.textContent = "";
+    matchPreview.innerHTML = "";
     showScreen("screen-edition");
   }
 

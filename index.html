@@ -13,6 +13,11 @@
   <nav class="mode-switch">
     <button id="mode-draft" class="mode-btn active" type="button">Draft</button>
     <button id="mode-guess" class="mode-btn" type="button">Adivina el Jugador</button>
+    <button id="mode-flags" class="mode-btn" type="button">Bandera Mystery</button>
+    <button id="mode-memory" class="mode-btn" type="button">Memoria</button>
+    <button id="mode-grid" class="mode-btn" type="button">Grid</button>
+    <button id="mode-connections" class="mode-btn" type="button">Conexiones</button>
+    <button id="mode-link" class="mode-btn" type="button">Cadena</button>
   </nav>
 </header>
 
@@ -62,6 +67,11 @@
       <div id="manual-player-list" class="manual-player-list"></div>
     </div>
 
+    <div class="ai-tools">
+      <button id="btn-ai-complete" class="btn btn-ai" type="button">🤖 Completar con IA</button>
+      <button id="btn-ideal-squad" class="btn btn-ai" type="button">🏆 Equipo ideal (IA)</button>
+    </div>
+
     <div class="squad">
       <h3>Tu equipo <span id="squad-count">(0/5)</span></h3>
       <ul id="squad-list" class="squad-list"></ul>
@@ -97,6 +107,8 @@
         <span id="score-opp" class="score">0</span>
       </div>
     </div>
+
+    <div id="match-preview" class="match-preview"></div>
 
     <div class="round-tracker" id="round-tracker"></div>
 
@@ -164,16 +176,147 @@
 
 </main>
 
+<main id="app-flags" hidden>
+
+  <section id="flags-screen" class="screen active">
+    <h2>Bandera Mystery</h2>
+    <p class="subtitle">¿De qué selección es esta bandera?</p>
+
+    <div class="flag-stats">
+      <span>Racha: <strong id="flags-streak">0</strong></span>
+      <span>Mejor racha: <strong id="flags-best">0</strong></span>
+      <span>Aciertos: <strong id="flags-score">0/0</strong></span>
+    </div>
+
+    <div id="flags-emoji" class="flag-mystery-emoji">🏳️</div>
+
+    <div id="flags-options" class="flag-options"></div>
+
+    <div id="flags-feedback" class="guess-result"></div>
+    <button id="btn-flags-next" class="btn btn-primary" type="button" hidden>Siguiente bandera</button>
+  </section>
+
+</main>
+
+<main id="app-memory" hidden>
+
+  <section id="memory-screen" class="screen active">
+    <h2>Memoria de Banderas</h2>
+    <p class="subtitle" id="memory-subtitle">Encontrá todos los pares</p>
+
+    <div id="memory-difficulty" class="edition-pill-group"></div>
+
+    <div class="memory-stats">
+      <span>Movimientos: <strong id="memory-moves">0</strong></span>
+      <span>Pares: <strong id="memory-pairs">0/0</strong></span>
+    </div>
+
+    <div id="memory-grid" class="memory-grid"></div>
+
+    <div id="memory-result" class="guess-result"></div>
+    <button id="btn-memory-restart" class="btn btn-accent" type="button" hidden>Jugar de nuevo</button>
+  </section>
+
+</main>
+
+<main id="app-grid" hidden>
+
+  <section id="grid-screen" class="screen active">
+    <h2>Grid Mundialista</h2>
+    <p class="subtitle">Nombrá un jugador que cumpla las dos categorías de cada celda (un jugador por celda, una selección por celda)</p>
+
+    <div class="grid-stats">
+      <span>Aciertos: <strong id="grid-score">0/9</strong></span>
+    </div>
+
+    <div id="grid-board" class="grid-board"></div>
+
+    <div id="grid-result" class="guess-result"></div>
+    <button id="btn-grid-new" class="btn btn-accent" type="button">Nueva grilla</button>
+  </section>
+
+</main>
+
+<main id="app-connections" hidden>
+
+  <section id="connections-screen" class="screen active">
+    <h2>Conexiones Mundialista</h2>
+    <p class="subtitle" id="connections-subtitle">Agrupá de a 4 los jugadores que compartieron grupo en un Mundial</p>
+
+    <div class="connections-stats">
+      <span>Errores restantes: <strong id="connections-mistakes">4</strong></span>
+    </div>
+
+    <div id="connections-solved" class="connections-solved"></div>
+    <div id="connections-board" class="connections-board"></div>
+
+    <div class="connections-controls">
+      <button id="btn-connections-deselect" class="btn-mini" type="button">Deseleccionar</button>
+      <button id="btn-connections-shuffle" class="btn-mini" type="button">Mezclar</button>
+      <button id="btn-connections-submit" class="btn btn-primary" type="button" disabled>Enviar</button>
+    </div>
+
+    <div id="connections-message" class="guess-result"></div>
+    <button id="btn-connections-new" class="btn btn-accent" type="button">Nueva ronda</button>
+  </section>
+
+</main>
+
+<main id="app-link" hidden>
+
+  <section id="link-screen" class="screen active">
+    <h2>Cadena Mundialista</h2>
+    <p class="subtitle">Conectá selecciones que compartieron grupo en algún Mundial hasta llegar al objetivo</p>
+
+    <div class="link-stats">
+      <span>Pasos: <strong id="link-steps">0</strong></span>
+      <span>Errores: <strong id="link-mistakes">0</strong></span>
+      <span>Pistas: <strong id="link-hints">3</strong></span>
+    </div>
+
+    <div class="link-target">Llegá a: <strong id="link-target-team"></strong></div>
+
+    <div id="link-chain" class="link-chain"></div>
+
+    <form id="link-form" class="guess-form" autocomplete="off">
+      <div class="guess-input-wrap">
+        <input
+          id="link-input"
+          type="text"
+          placeholder="Escribí una selección..."
+          autocomplete="off"
+          required
+        >
+        <ul id="link-suggestions" class="guess-suggestions" hidden></ul>
+      </div>
+      <button type="submit" class="btn btn-primary">Conectar</button>
+    </form>
+
+    <div class="hint-box">
+      <button id="btn-link-hint" type="button" class="btn btn-hint">💡 Pista</button>
+    </div>
+
+    <div id="link-result" class="guess-result"></div>
+    <button id="btn-link-new" class="btn btn-accent" type="button">Nueva cadena</button>
+  </section>
+
+</main>
+
 <footer>
   <p>Proyecto inspirado en <a href="https://7a0.com.br/es" target="_blank" rel="noopener">7a0.com.br</a> — hecho con HTML/CSS/JS.</p>
 </footer>
 
-<script src="data/mundiales.js?v=13"></script>
-<script src="data/confederaciones.js?v=13"></script>
-<script src="data/banderas.js?v=13"></script>
-<script src="data/ratings.js?v=13"></script>
-<script src="game.js?v=13"></script>
-<script src="guess.js?v=13"></script>
-<script src="mode-switch.js?v=13"></script>
+<script src="data/mundiales.js?v=15"></script>
+<script src="data/confederaciones.js?v=15"></script>
+<script src="data/banderas.js?v=15"></script>
+<script src="data/ratings.js?v=15"></script>
+<script src="game.js?v=15"></script>
+<script src="guess.js?v=15"></script>
+<script src="flags.js?v=15"></script>
+<script src="memory.js?v=15"></script>
+<script src="grid.js?v=15"></script>
+<script src="connections.js?v=15"></script>
+<script src="link.js?v=15"></script>
+<script src="mode-switch.js?v=15"></script>
 </body>
 </html>

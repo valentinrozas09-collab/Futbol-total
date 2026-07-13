@@ -5,6 +5,8 @@
   --green-dark: #0e9c68;
   --gold: #f2b705;
   --red: #e5484d;
+  --blue: #4f8ff7;
+  --purple: #a78bfa;
   --text: #eef2f7;
   --text-dim: #8996ab;
   --border: #223047;
@@ -163,6 +165,53 @@ h2 {
   color: #241a00;
 }
 
+.ai-tools {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.ai-tools .btn {
+  margin: 0;
+}
+.btn-ai {
+  background: transparent;
+  border: 1px solid var(--green);
+  color: var(--green);
+}
+.btn-ai:hover {
+  background: rgba(22, 199, 132, .12);
+}
+
+.match-preview {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: .9rem;
+}
+.match-preview:empty {
+  display: none;
+}
+.match-preview .preview-label {
+  color: var(--gold);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.match-preview .preview-line {
+  margin-top: 2px;
+  color: var(--text-dim);
+}
+.match-preview .preview-line strong {
+  color: var(--text);
+}
+.match-preview .preview-line.warn {
+  color: var(--red);
+}
+
 .squad {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -272,6 +321,7 @@ footer a {
 .mode-switch {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 16px;
 }
@@ -658,4 +708,334 @@ footer a {
 .group-table tr.you-row td {
   font-weight: 800;
   color: var(--gold);
+}
+
+/* Bandera Mystery */
+.flag-stats {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  color: var(--text-dim);
+  font-size: .9rem;
+  margin: 10px 0 6px;
+}
+.flag-stats strong {
+  color: var(--text);
+}
+
+.flag-mystery-emoji {
+  font-size: 6rem;
+  text-align: center;
+  margin: 20px 0;
+  line-height: 1;
+}
+
+.flag-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+.flag-option-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 14px 10px;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.flag-option-btn:hover:not(:disabled) {
+  border-color: var(--green);
+}
+.flag-option-btn:disabled {
+  cursor: not-allowed;
+}
+.flag-option-btn.correct {
+  background: rgba(22, 199, 132, .25);
+  border-color: var(--green);
+  color: var(--green);
+}
+.flag-option-btn.wrong {
+  background: rgba(229, 72, 77, .2);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* Memoria de banderas */
+.memory-stats {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  color: var(--text-dim);
+  font-size: .9rem;
+  margin: 6px 0 16px;
+}
+.memory-stats strong {
+  color: var(--text);
+}
+
+.memory-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--memory-cols, 4), 1fr);
+  gap: 8px;
+  max-width: 480px;
+  margin: 0 auto 16px;
+}
+.memory-card {
+  aspect-ratio: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform .15s ease, background .15s ease;
+}
+.memory-card:disabled {
+  cursor: default;
+}
+.memory-card.flipped {
+  background: var(--bg);
+  border-color: var(--gold);
+}
+.memory-card.matched {
+  background: rgba(22, 199, 132, .2);
+  border-color: var(--green);
+}
+
+/* Grid Mundialista */
+.grid-stats {
+  display: flex;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: .9rem;
+  margin: 10px 0 16px;
+}
+.grid-stats strong {
+  color: var(--text);
+}
+
+.grid-board {
+  display: grid;
+  grid-template-columns: minmax(72px, 100px) repeat(3, 1fr);
+  gap: 4px;
+  margin: 0 auto 16px;
+}
+.grid-cell {
+  min-height: 74px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6px;
+  font-size: .75rem;
+}
+.grid-cell.corner {
+  background: transparent;
+}
+.grid-cell.header {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.grid-cell.guess {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 1.4rem;
+  color: var(--text-dim);
+}
+.grid-cell.guess.correct {
+  background: rgba(22, 199, 132, .18);
+  border-color: var(--green);
+}
+.grid-cell.guess.correct .grid-cell-name {
+  color: var(--green);
+}
+.grid-cell.guess.wrong {
+  background: rgba(229, 72, 77, .15);
+  border-color: var(--red);
+}
+.grid-cell.guess.wrong .grid-cell-name {
+  color: var(--red);
+}
+.grid-cell-name {
+  font-size: .82rem;
+  font-weight: 800;
+  color: var(--text);
+  word-break: break-word;
+}
+.grid-cell-sub {
+  font-size: .68rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.grid-cell-input {
+  width: 100%;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid var(--gold);
+  background: var(--bg);
+  color: var(--text);
+  font-size: .8rem;
+  text-align: center;
+}
+
+/* Conexiones Mundialista */
+.connections-stats {
+  display: flex;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: .9rem;
+  margin: 10px 0 16px;
+}
+.connections-stats strong {
+  color: var(--text);
+}
+
+.connections-solved {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.connections-solved-row {
+  border-radius: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.connections-solved-label {
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+.connections-solved-players {
+  font-size: .85rem;
+}
+.connections-solved-row.c1 {
+  background: rgba(79, 143, 247, .18);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.connections-solved-row.c2 {
+  background: rgba(22, 199, 132, .18);
+  border-color: var(--green);
+  color: var(--green);
+}
+.connections-solved-row.c3 {
+  background: rgba(242, 183, 5, .18);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.connections-solved-row.c4 {
+  background: rgba(167, 139, 250, .18);
+  border-color: var(--purple);
+  color: var(--purple);
+}
+
+.connections-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.connections-tile {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 4px;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.connections-tile-flag {
+  font-size: 1.1rem;
+}
+.connections-tile.selected {
+  background: rgba(242, 183, 5, .2);
+  border-color: var(--gold);
+}
+.connections-tile.flash-wrong {
+  background: rgba(229, 72, 77, .25);
+  border-color: var(--red);
+}
+.connections-tile:disabled {
+  cursor: not-allowed;
+}
+
+.connections-controls {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.connections-controls .btn {
+  margin: 0;
+}
+
+/* Cadena Mundialista */
+.link-stats {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  color: var(--text-dim);
+  font-size: .9rem;
+  margin: 10px 0 6px;
+}
+.link-stats strong {
+  color: var(--text);
+}
+
+.link-target {
+  text-align: center;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+}
+.link-target strong {
+  color: var(--gold);
+}
+
+.link-chain {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.link-chain-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 700;
+  font-size: .9rem;
+}
+.link-chain-item.reached {
+  border-color: var(--green);
+  color: var(--green);
+}
+.link-chain-arrow {
+  color: var(--text-dim);
 }
