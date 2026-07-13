@@ -211,6 +211,10 @@ h2 {
 .match-preview .preview-line.warn {
   color: var(--red);
 }
+.match-preview .preview-line.scouting {
+  color: var(--text-dim);
+  font-size: .85rem;
+}
 
 .squad {
   background: var(--bg-card);
@@ -340,6 +344,15 @@ footer a {
   background: var(--green);
   border-color: var(--green);
   color: #04140c;
+}
+
+.difficulty-picker {
+  text-align: center;
+  margin-top: 18px;
+}
+.difficulty-label {
+  color: var(--text-dim);
+  font-size: .85rem;
 }
 
 .edition-pill-group {
@@ -711,6 +724,23 @@ footer a {
 }
 
 /* Bandera Mystery */
+.flags-settings {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.flags-setting-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.flags-setting-row .draft-mode-switch {
+  margin: 0;
+}
+
 .flag-stats {
   display: flex;
   justify-content: center;
@@ -891,6 +921,25 @@ footer a {
   color: var(--text);
   font-size: .8rem;
   text-align: center;
+}
+
+.grid-share-wrap {
+  max-width: 420px;
+  margin: 0 auto;
+  text-align: center;
+}
+.grid-share-text {
+  width: 100%;
+  resize: none;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: .85rem;
+  line-height: 1.5;
+  margin-bottom: 10px;
 }
 
 /* Conexiones Mundialista */

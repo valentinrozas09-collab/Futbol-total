@@ -26,6 +26,16 @@
   <!-- Paso 1: elegir mundial -->
   <section id="screen-edition" class="screen active">
     <h2>Elegí un Mundial</h2>
+
+    <div class="difficulty-picker">
+      <span class="difficulty-label">Dificultad de la IA rival</span>
+      <div id="difficulty-picker" class="edition-pill-group">
+        <button class="pill-btn" type="button" data-difficulty="easy">Fácil</button>
+        <button class="pill-btn active" type="button" data-difficulty="normal">Normal</button>
+        <button class="pill-btn" type="button" data-difficulty="hard">Difícil</button>
+      </div>
+    </div>
+
     <div id="edition-list" class="edition-grid"></div>
   </section>
 
@@ -182,7 +192,32 @@
     <h2>Bandera Mystery</h2>
     <p class="subtitle">¿De qué selección es esta bandera?</p>
 
+    <div class="flags-settings">
+      <div class="flags-setting-row">
+        <span class="difficulty-label">Modo de respuesta</span>
+        <div class="draft-mode-switch">
+          <button id="flags-mode-choice" class="mode-btn active" type="button">Opción múltiple</button>
+          <button id="flags-mode-write" class="mode-btn" type="button">Escribir el nombre</button>
+        </div>
+      </div>
+      <div class="flags-setting-row" id="flags-difficulty-row">
+        <span class="difficulty-label">Dificultad</span>
+        <div class="draft-mode-switch">
+          <button id="flags-diff-easy" class="mode-btn active" type="button">Fácil</button>
+          <button id="flags-diff-hard" class="mode-btn" type="button">Difícil</button>
+        </div>
+      </div>
+      <div class="flags-setting-row">
+        <span class="difficulty-label">Modo de tiempo</span>
+        <div class="draft-mode-switch">
+          <button id="flags-time-classic" class="mode-btn active" type="button">Clásico</button>
+          <button id="flags-time-timed" class="mode-btn" type="button">Contrarreloj (60s)</button>
+        </div>
+      </div>
+    </div>
+
     <div class="flag-stats">
+      <span id="flags-timer-wrap" hidden>⏱ <strong id="flags-timer">60</strong>s</span>
       <span>Racha: <strong id="flags-streak">0</strong></span>
       <span>Mejor racha: <strong id="flags-best">0</strong></span>
       <span>Aciertos: <strong id="flags-score">0/0</strong></span>
@@ -192,8 +227,23 @@
 
     <div id="flags-options" class="flag-options"></div>
 
+    <form id="flags-write-form" class="guess-form" autocomplete="off" hidden>
+      <div class="guess-input-wrap">
+        <input
+          id="flags-write-input"
+          type="text"
+          placeholder="Escribí el nombre del país..."
+          autocomplete="off"
+          required
+        >
+        <ul id="flags-write-suggestions" class="guess-suggestions" hidden></ul>
+      </div>
+      <button type="submit" class="btn btn-primary">Adivinar</button>
+    </form>
+
     <div id="flags-feedback" class="guess-result"></div>
     <button id="btn-flags-next" class="btn btn-primary" type="button" hidden>Siguiente bandera</button>
+    <button id="btn-flags-restart-timed" class="btn btn-accent" type="button" hidden>Jugar de nuevo</button>
   </section>
 
 </main>
@@ -225,14 +275,38 @@
     <h2>Grid Mundialista</h2>
     <p class="subtitle">Nombrá un jugador que cumpla las dos categorías de cada celda (un jugador por celda, una selección por celda)</p>
 
+    <div class="flags-settings">
+      <div class="flags-setting-row">
+        <span class="difficulty-label">Dificultad</span>
+        <div id="grid-difficulty" class="edition-pill-group">
+          <button class="pill-btn" type="button" data-grid-difficulty="easy">Fácil</button>
+          <button class="pill-btn active" type="button" data-grid-difficulty="normal">Normal</button>
+          <button class="pill-btn" type="button" data-grid-difficulty="hard">Difícil</button>
+        </div>
+      </div>
+      <div class="flags-setting-row">
+        <span class="difficulty-label">Modo de grilla</span>
+        <div class="draft-mode-switch">
+          <button id="grid-mode-random" class="mode-btn active" type="button">Aleatoria</button>
+          <button id="grid-mode-daily" class="mode-btn" type="button">Diaria del día</button>
+        </div>
+      </div>
+    </div>
+
     <div class="grid-stats">
       <span>Aciertos: <strong id="grid-score">0/9</strong></span>
+      <span>Mejor: <strong id="grid-best">0/9</strong></span>
     </div>
 
     <div id="grid-board" class="grid-board"></div>
 
     <div id="grid-result" class="guess-result"></div>
     <button id="btn-grid-new" class="btn btn-accent" type="button">Nueva grilla</button>
+
+    <div id="grid-share-wrap" class="grid-share-wrap" hidden>
+      <textarea id="grid-share-text" class="grid-share-text" readonly rows="6"></textarea>
+      <button id="btn-grid-share" class="btn btn-primary" type="button">📋 Copiar resultado</button>
+    </div>
   </section>
 
 </main>
@@ -306,17 +380,17 @@
   <p>Proyecto inspirado en <a href="https://7a0.com.br/es" target="_blank" rel="noopener">7a0.com.br</a> — hecho con HTML/CSS/JS.</p>
 </footer>
 
-<script src="data/mundiales.js?v=15"></script>
-<script src="data/confederaciones.js?v=15"></script>
-<script src="data/banderas.js?v=15"></script>
-<script src="data/ratings.js?v=15"></script>
-<script src="game.js?v=15"></script>
-<script src="guess.js?v=15"></script>
-<script src="flags.js?v=15"></script>
-<script src="memory.js?v=15"></script>
-<script src="grid.js?v=15"></script>
-<script src="connections.js?v=15"></script>
-<script src="link.js?v=15"></script>
-<script src="mode-switch.js?v=15"></script>
+<script src="data/mundiales.js?v=18"></script>
+<script src="data/confederaciones.js?v=18"></script>
+<script src="data/banderas.js?v=18"></script>
+<script src="data/ratings.js?v=18"></script>
+<script src="game.js?v=18"></script>
+<script src="guess.js?v=18"></script>
+<script src="flags.js?v=18"></script>
+<script src="memory.js?v=18"></script>
+<script src="grid.js?v=18"></script>
+<script src="connections.js?v=18"></script>
+<script src="link.js?v=18"></script>
+<script src="mode-switch.js?v=18"></script>
 </body>
 </html>

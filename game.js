@@ -17,6 +17,7 @@
   const POSITION_LABEL = { GK: "Arqueros", DF: "Defensores", MF: "Mediocampistas", FW: "Delanteros" };
   const POSITION_ORDER = ["GK", "DF", "MF", "FW"];
 
+  const difficultyPicker = document.getElementById("difficulty-picker");
   const editionList = document.getElementById("edition-list");
   const formationList = document.getElementById("formation-list");
   const positionNeeds = document.getElementById("position-needs");
@@ -64,6 +65,7 @@
   let spinTeam = null;
   let formationKey = null;
   let requiredCounts = null; // null => sin restricción de posición (edición sin datos de posición)
+  let aiDifficulty = "normal"; // "easy" | "normal" | "hard"
 
   // Estado del torneo
   let phase = null; // "group" | "knockout"
@@ -86,6 +88,15 @@
   function normalize(str) {
     return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   }
+
+  // ---------- Dificultad de la IA rival ----------
+
+  difficultyPicker.querySelectorAll("button[data-difficulty]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      aiDifficulty = btn.dataset.difficulty;
+      difficultyPicker.querySelectorAll("button[data-difficulty]").forEach((b) => b.classList.toggle("active", b === btn));
+    });
+  });
 
   // ---------- Edición ----------
 
@@ -448,7 +459,45 @@
   // ---------- Rival con IA: arma su propio plantel y juega con ataque/defensa reales ----------
 
   const AI_DEFAULT_FORMATION = { GK: 1, DF: 4, MF: 3, FW: 3 };
-  const AI_EXPLOIT_FORMATION = { GK: 1, DF: 3, MF: 3, FW: 4 }; // carga de delanteros para explotar defensas débiles
+
+  // Cuánto se desvía la IA del mejor 11 objetivo al armar un plantel: 0 = siempre el mejor
+  // posible, valores más altos = elige al azar dentro de una ventana de candidatos más floja.
+  const DIFFICULTY_NOISE = { easy: 3, normal: 1, hard: 0 };
+
+  // Cuánto pesa el rating de un equipo al sortear rivales: 0 = totalmente al azar,
+  // valores más altos = favorece selecciones fuertes. Sube en cada ronda eliminatoria.
+  const DIFFICULTY_BASE_POWER = { easy: 0, normal: 1, hard: 2 };
+  const KNOCKOUT_POWER_STEP = 0.75;
+
+  // A partir de qué déficit (en puntos de rating) respecto a tu propio promedio la IA
+  // considera que una línea tuya es "débil" y vale la pena explotarla.
+  const ADAPT_THRESHOLD = { easy: Infinity, normal: 6, hard: 3 };
+
+  // Escalones de formación según qué tan débil es tu línea más floja (más déficit = más carga).
+  const TIERS_VS_WEAK_DEF = [
+    { min: 3, counts: { GK: 1, DF: 4, MF: 2, FW: 4 }, label: "adelantó líneas para aprovechar tu defensa floja" },
+    { min: 6, counts: { GK: 1, DF: 3, MF: 3, FW: 4 }, label: "cargó de delanteros para aprovechar tu defensa floja" },
+    { min: 9, counts: { GK: 1, DF: 2, MF: 3, FW: 5 }, label: "apostó todo al ataque para explotar tu defensa" },
+  ];
+  const TIERS_VS_WEAK_MID = [
+    { min: 3, counts: { GK: 1, DF: 4, MF: 4, FW: 2 }, label: "sumó un mediocampista para dominar la posesión" },
+    { min: 6, counts: { GK: 1, DF: 4, MF: 5, FW: 1 }, label: "reforzó el mediocampo para dominar la posesión" },
+    { min: 9, counts: { GK: 1, DF: 3, MF: 6, FW: 1 }, label: "abarrotó el mediocampo para ahogarte la salida" },
+  ];
+  const TIERS_VS_WEAK_FW = [
+    { min: 3, counts: { GK: 1, DF: 4, MF: 3, FW: 3 }, label: null },
+    { min: 6, counts: { GK: 1, DF: 3, MF: 4, FW: 3 }, label: "adelantó un defensor porque tu ataque no preocupa" },
+    { min: 9, counts: { GK: 1, DF: 3, MF: 3, FW: 4 }, label: "jugó con línea alta porque tu ataque no preocupa" },
+  ];
+
+  function shuffle(arr) {
+    const copy = arr.slice();
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }
 
   function avgRating(players) {
     if (!players || !players.length) return 70;
@@ -471,40 +520,86 @@
     return specific != null ? specific : avgRating(players);
   }
 
-  // Detecta si tu plantel tiene la defensa notablemente más floja que el ataque,
-  // para que el rival "lea" esa debilidad y arme su equipo para explotarla.
-  function userDefenseWeak() {
-    if (!hasPositionData() || !squad.length) return false;
+  // Compara cada línea de tu plantel contra tu propio promedio para encontrar tu punto más
+  // flojo (defensa, medio o ataque) y con qué intensidad conviene explotarlo.
+  function analyzeUserWeakness() {
+    if (!hasPositionData() || !squad.length) return null;
     const def = lineAvg(squad, ["GK", "DF"]);
-    const att = lineAvg(squad, ["MF", "FW"]);
-    if (def == null || att == null) return false;
-    return att - def >= 4;
+    const mid = lineAvg(squad, ["MF"]);
+    const fw = lineAvg(squad, ["FW"]);
+    if (def == null || mid == null || fw == null) return null;
+    const overall = (def + mid + fw) / 3;
+    return { def: def - overall, mid: mid - overall, fw: fw - overall };
   }
 
-  // Arma el mejor 11 real de un seleccionado: toma los jugadores de mayor rating
-  // por posición (más delanteros si `exploit` está activo).
-  function aiSquadFor(teamName, exploit) {
+  // Elige la formación del rival según difficulty: en fácil siempre usa la formación
+  // pareja; en normal/difícil detecta tu línea más floja y carga la formación en su
+  // contra, con un escalón más agresivo cuanto mayor es el déficit.
+  function pickAdaptiveFormation(difficulty) {
+    const threshold = ADAPT_THRESHOLD[difficulty];
+    const deviations = analyzeUserWeakness();
+    if (!deviations || threshold === Infinity) return { counts: AI_DEFAULT_FORMATION, reason: null };
+
+    const candidates = [
+      { key: "def", dev: deviations.def, tiers: TIERS_VS_WEAK_DEF },
+      { key: "mid", dev: deviations.mid, tiers: TIERS_VS_WEAK_MID },
+      { key: "fw", dev: deviations.fw, tiers: TIERS_VS_WEAK_FW },
+    ];
+    const weakest = candidates.reduce((a, b) => (b.dev < a.dev ? b : a));
+    const deficit = -weakest.dev;
+    if (deficit < threshold) return { counts: AI_DEFAULT_FORMATION, reason: null };
+
+    let chosenTier = weakest.tiers[0];
+    for (const tier of weakest.tiers) {
+      if (deficit >= tier.min) chosenTier = tier;
+    }
+    return { counts: chosenTier.counts, reason: chosenTier.label };
+  }
+
+  // Toma un jugador (o varios) de una lista ya ordenada por rating: con ruido 0 siempre
+  // el mejor disponible; con ruido > 0 sortea dentro de una ventana de candidatos más
+  // amplia, simulando una IA que no siempre arma el 11 óptimo.
+  function pickWithNoise(sortedCandidates, need, difficulty) {
+    if (need <= 0) return [];
+    const noise = DIFFICULTY_NOISE[difficulty] ?? DIFFICULTY_NOISE.normal;
+    if (noise <= 0) return sortedCandidates.slice(0, need);
+    const windowSize = Math.min(sortedCandidates.length, need + noise * need);
+    return shuffle(sortedCandidates.slice(0, windowSize)).slice(0, need);
+  }
+
+  // Arma el 11 real de un seleccionado según la formación y la dificultad pedidas:
+  // toma jugadores de mayor rating por posición (con margen de error según dificultad).
+  function aiSquadFor(teamName, formationCounts, difficulty) {
     const teamPlayers = (edition.players && edition.players[teamName]) || [];
     if (!teamPlayers.length) return [{ name: teamName, team: teamName }];
 
     const withRatings = teamPlayers.map((name) => ({ name, team: teamName }));
     if (!hasPositionData()) {
-      return withRatings.sort((a, b) => ratingOf(b) - ratingOf(a)).slice(0, 11);
+      return pickWithNoise(withRatings.sort((a, b) => ratingOf(b) - ratingOf(a)), 11, difficulty);
     }
 
-    const counts = exploit ? AI_EXPLOIT_FORMATION : AI_DEFAULT_FORMATION;
     const chosen = [];
     for (const pos of POSITION_ORDER) {
-      const need = counts[pos] || 0;
+      const need = formationCounts[pos] || 0;
       const candidates = withRatings.filter((p) => positionOf(p) === pos).sort((a, b) => ratingOf(b) - ratingOf(a));
-      chosen.push(...candidates.slice(0, need));
+      chosen.push(...pickWithNoise(candidates, need, difficulty));
     }
     if (chosen.length < 11) {
       const chosenNames = new Set(chosen.map((p) => p.name));
       const rest = withRatings.filter((p) => !chosenNames.has(p.name)).sort((a, b) => ratingOf(b) - ratingOf(a));
-      chosen.push(...rest.slice(0, 11 - chosen.length));
+      chosen.push(...pickWithNoise(rest, 11 - chosen.length, difficulty));
     }
     return chosen;
+  }
+
+  // Fuerza objetiva de un seleccionado (siempre con su mejor 11, sin ruido de dificultad):
+  // se usa solo para decidir qué tan probable es que salga sorteado como rival.
+  function teamStrength(team) {
+    return avgRating(aiSquadFor(team, AI_DEFAULT_FORMATION, "hard"));
+  }
+
+  function formationLabel(counts) {
+    return `${counts.DF}-${counts.MF}-${counts.FW}`;
   }
 
   // ---------- Simulación de partidos ----------
@@ -566,7 +661,11 @@
     return { winP: winP / total, drawP: drawP / total, loseP: loseP / total };
   }
 
-  function renderMatchPreview(oppTeamName, oppSquad, exploit) {
+  function topScouts(oppSquad, n) {
+    return [...oppSquad].sort((a, b) => ratingOf(b) - ratingOf(a)).slice(0, n);
+  }
+
+  function renderMatchPreview(oppTeamName, oppSquad, formationCounts, reason) {
     if (!oppTeamName || !oppSquad) {
       matchPreview.innerHTML = "";
       return;
@@ -576,12 +675,19 @@
     const myAvg = Math.round(avgRating(squad));
     const oppAvg = Math.round(avgRating(oppSquad));
     const favorite = myAvg === oppAvg ? "Está parejo" : myAvg > oppAvg ? "Vos" : oppTeamName;
+    const scouts = hasPositionData()
+      ? topScouts(oppSquad, 3)
+          .map((p) => `${p.name} (${positionOf(p) || "-"} · ${Math.round(ratingOf(p))})`)
+          .join(", ")
+      : "";
 
     matchPreview.innerHTML = `
       <div class="preview-label">🤖 IA analizando el partido…</div>
       <div class="preview-line">Favorito: <strong>${favorite}</strong> (rating promedio ${myAvg} vs ${oppAvg})</div>
       <div class="preview-line">${Math.round(winP * 100)}% victoria · ${Math.round(drawP * 100)}% empate · ${Math.round(loseP * 100)}% derrota</div>
-      ${exploit ? `<div class="preview-line warn">⚠️ ${oppTeamName} cargó de delanteros para aprovechar tu defensa.</div>` : ""}
+      ${formationCounts ? `<div class="preview-line">📋 Formación rival: ${formationLabel(formationCounts)}</div>` : ""}
+      ${scouts ? `<div class="preview-line scouting">🔎 Scouting: ${scouts}</div>` : ""}
+      ${reason ? `<div class="preview-line warn">⚠️ ${oppTeamName} ${reason}.</div>` : ""}
     `;
   }
 
@@ -589,15 +695,32 @@
 
   function setOpponent(oppTeamName) {
     opponentName.textContent = oppTeamName;
-    const exploit = userDefenseWeak();
-    currentOppSquad = aiSquadFor(oppTeamName, exploit);
-    renderMatchPreview(oppTeamName, currentOppSquad, exploit);
+    const { counts, reason } = pickAdaptiveFormation(aiDifficulty);
+    currentOppSquad = aiSquadFor(oppTeamName, counts, aiDifficulty);
+    renderMatchPreview(oppTeamName, currentOppSquad, counts, reason);
   }
 
-  function pickRandomTeams(n, exclude) {
-    const candidates = edition.teams.filter((t) => !exclude.has(t));
-    const shuffled = candidates.sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, n);
+  function weightedIndex(weights) {
+    const total = weights.reduce((a, b) => a + b, 0);
+    if (total <= 0) return Math.floor(Math.random() * weights.length);
+    let r = Math.random() * total;
+    for (let i = 0; i < weights.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return i;
+    }
+    return weights.length - 1;
+  }
+
+  // Sortea rivales dando más chances a los equipos fuertes cuanto mayor es `power`
+  // (crece con la dificultad elegida y con el avance del torneo en la fase eliminatoria).
+  function pickOpponents(n, exclude, power) {
+    const pool = edition.teams.filter((t) => !exclude.has(t));
+    const picked = [];
+    for (let i = 0; i < n && pool.length; i++) {
+      const idx = power <= 0 ? Math.floor(Math.random() * pool.length) : weightedIndex(pool.map((t) => Math.pow(teamStrength(t), power)));
+      picked.push(pool.splice(idx, 1)[0]);
+    }
+    return picked;
   }
 
   // ---------- Fase de grupos ----------
@@ -629,7 +752,7 @@
     phase = "group";
     facedTeams = new Set();
     record = { wins: 0, draws: 0, losses: 0 };
-    const opponents = pickRandomTeams(3, new Set());
+    const opponents = pickOpponents(3, new Set(), DIFFICULTY_BASE_POWER[aiDifficulty]);
     opponents.forEach((t) => facedTeams.add(t));
 
     groupTeams = [newTeamStat(YOUR_TEAM_LABEL, true), ...opponents.map((t) => newTeamStat(t, false))];
@@ -706,7 +829,10 @@
     // el resto del grupo juega su partido en la misma jornada, a la par del tuyo
     const otherAStat = groupTeams.find((t) => t.name === round.otherA);
     const otherBStat = groupTeams.find((t) => t.name === round.otherB);
-    const [gA, gB] = simulateMatch(aiSquadFor(round.otherA, false), aiSquadFor(round.otherB, false));
+    const [gA, gB] = simulateMatch(
+      aiSquadFor(round.otherA, AI_DEFAULT_FORMATION, "normal"),
+      aiSquadFor(round.otherB, AI_DEFAULT_FORMATION, "normal")
+    );
     applyResult(otherAStat, gA, gB);
     applyResult(otherBStat, gB, gA);
 
@@ -755,7 +881,8 @@
   }
 
   function nextKnockoutOpponent() {
-    const [opp] = pickRandomTeams(1, facedTeams);
+    const power = DIFFICULTY_BASE_POWER[aiDifficulty] + knockoutIndex * KNOCKOUT_POWER_STEP;
+    const [opp] = pickOpponents(1, facedTeams, power);
     facedTeams.add(opp);
     setOpponent(opp);
   }
